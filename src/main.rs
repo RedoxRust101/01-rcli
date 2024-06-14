@@ -68,8 +68,8 @@ async fn main() -> anyhow::Result<()> {
                     }
                     rcli::TextSignFormat::Ed25519 => {
                         let name = &opts.output;
-                        fs::write(name.join("ed25519.sk.txt"), &key[0])?;
-                        fs::write(name.join("ed25519.pk.txt"), &key[1])?;
+                        fs::write(name.join("ed25519.sk"), &key[0])?;
+                        fs::write(name.join("ed25519.pk"), &key[1])?;
                     }
                 }
             }

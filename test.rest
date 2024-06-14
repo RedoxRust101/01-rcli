@@ -1,3 +1,15 @@
-### Test index page
+### Test static file
 
-GET http://localhost:8080/abc.txt
+GET http://localhost:8080/Cargo.toml
+Range: bytes=0-100
+
+### Test static file with tower-http
+
+GET http://localhost:8080/tower/fixtures/ed25519.sk HTTP/2
+Accept-Encoding: gzip
+Range: bytes=0-10
+
+### Test html with tower-http
+
+GET http://localhost:8080/tower/fixtures/index.html HTTP/2
+Accept-Encoding: gzip
