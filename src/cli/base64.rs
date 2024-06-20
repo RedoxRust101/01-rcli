@@ -2,6 +2,8 @@ use std::{fmt, str::FromStr};
 
 use clap::Parser;
 
+use crate::CmdExector;
+
 use super::verify_file;
 #[derive(Debug, Parser)]
 pub enum Base64SubCommand {
@@ -61,5 +63,31 @@ impl From<Base64Format> for &str {
 impl fmt::Display for Base64Format {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", Into::<&str>::into(*self))
+    }
+}
+
+impl CmdExector for Base64EncodeOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let ret = crate::process_encode(&self.input, self.format)?;
+        println!("{}", ret);
+        Ok(())
+    }
+}
+
+impl CmdExector for Base64DecodeOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let decoded = crate::process_decode(&self.input, self.format)?;
+        let ret = String::from_utf8(decoded)?;
+        println!("{}", ret);
+        Ok(())
+    }
+}
+
+impl CmdExector for Base64SubCommand {
+    async fn execute(self) -> anyhow::Result<()> {
+        match self {
+            Base64SubCommand::Encode(opts) => opts.execute().await,
+            Base64SubCommand::Decode(opts) => opts.execute().await,
+        }
     }
 }

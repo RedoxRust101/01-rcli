@@ -38,7 +38,11 @@ pub struct Ed25519Verifier {
     key: VerifyingKey,
 }
 
-pub fn process_text_sign(input: &str, private_key: &str, format: TextSignFormat) -> Result<String> {
+pub async fn process_text_sign(
+    input: &str,
+    private_key: &str,
+    format: TextSignFormat,
+) -> Result<String> {
     let mut reader = get_reader(input)?;
 
     let signed = match format {
@@ -55,7 +59,7 @@ pub fn process_text_sign(input: &str, private_key: &str, format: TextSignFormat)
     Ok(signed)
 }
 
-pub fn process_text_verify(
+pub async fn process_text_verify(
     input: &str,
     public_key: &str,
     format: TextSignFormat,
@@ -77,7 +81,7 @@ pub fn process_text_verify(
     Ok(verified)
 }
 
-pub fn process_text_generate(format: TextSignFormat) -> Result<Vec<Vec<u8>>> {
+pub fn process_text_key_generate(format: TextSignFormat) -> Result<Vec<Vec<u8>>> {
     match format {
         TextSignFormat::Blake3 => Blake3::generate(),
         TextSignFormat::Ed25519 => Ed25519Signer::generate(),

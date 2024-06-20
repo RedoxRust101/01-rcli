@@ -6,5 +6,7 @@
   "prettier.tabWidth": 2,
   "editor.tabSize": 2,
   "editor.fontSize": 18,
+  "editor.formatOnPaste": true,
+  "editor.formatOnSave": true,
 
 }
