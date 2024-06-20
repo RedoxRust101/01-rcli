@@ -102,7 +102,7 @@ impl TextSign for Ed25519Signer {
     fn sign(&self, reader: &mut dyn Read) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
         reader.read_to_end(&mut buf)?;
-        let sign = &self.key.sign(&buf);
+        let sign: &Signature = &self.key.sign(&buf);
         Ok(sign.to_bytes().to_vec())
     }
 }

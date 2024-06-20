@@ -5,15 +5,10 @@ mod http;
 mod text;
 use std::path::{Path, PathBuf};
 
-pub use self::{
-    base64::{Base64Format, Base64SubCommand},
-    csv::{CsvOpts, OutputFormat},
-    genpass::GenPassOpts,
-    http::HttpSubCommand,
-    text::{TextSignFormat, TextSubCommand},
-};
+pub use self::{base64::*, csv::*, genpass::*, http::*, text::*};
 
 use clap::Parser;
+use enum_dispatch::enum_dispatch;
 
 #[derive(Debug, Parser)]
 #[command(name = "rcli", version, author, about, long_about = None)]
@@ -23,6 +18,7 @@ pub struct Opts {
 }
 
 #[derive(Debug, Parser)]
+#[enum_dispatch(CmdExector)]
 pub enum SubCommand {
     #[command(name = "csv", about = "Show CSV, or convert CSV to other formats")]
     Csv(CsvOpts),
@@ -36,7 +32,7 @@ pub enum SubCommand {
     Http(HttpSubCommand),
 }
 
-impl super::CmdExector for SubCommand {
+/* impl super::CmdExector for SubCommand {
     async fn execute(self) -> anyhow::Result<()> {
         match self {
             SubCommand::Csv(opts) => opts.execute().await,
@@ -46,7 +42,7 @@ impl super::CmdExector for SubCommand {
             SubCommand::Http(opts) => opts.execute().await,
         }
     }
-}
+} */
 
 fn verify_file(filename: &str) -> anyhow::Result<String, &'static str> {
     // if input is "-" or file exists

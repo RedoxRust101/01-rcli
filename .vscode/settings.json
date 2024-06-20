@@ -1,7 +1,7 @@
 {
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "[rust]": {
-    "editor.defaultFormatter": "jinxdash.prettier-rust"
+    "editor.defaultFormatter": "statiolake.vscode-rustfmt"
   },
   "prettier.tabWidth": 2,
   "editor.tabSize": 2,
