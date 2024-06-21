@@ -1,4 +1,4 @@
-use crate::CmdExector;
+use crate::CmdExecutor;
 
 use super::{verify_file, verify_path};
 use anyhow::{Ok, Result};
@@ -7,7 +7,7 @@ use enum_dispatch::enum_dispatch;
 use std::{fmt, fs, path::PathBuf, str::FromStr};
 
 #[derive(Debug, Parser)]
-#[enum_dispatch(CmdExector)]
+#[enum_dispatch(CmdExecutor)]
 pub enum TextSubCommand {
     #[command(about = "Sign a message with a private/shared key")]
     Sign(TextSignOpts),
@@ -84,7 +84,7 @@ impl fmt::Display for TextSignFormat {
     }
 }
 
-impl CmdExector for TextSignOpts {
+impl CmdExecutor for TextSignOpts {
     async fn execute(self) -> anyhow::Result<()> {
         let sign = crate::process_text_sign(&self.input, &self.key, self.format).await?;
         println!("{}", sign);
@@ -92,7 +92,7 @@ impl CmdExector for TextSignOpts {
     }
 }
 
-impl CmdExector for TextVerifyOpts {
+impl CmdExecutor for TextVerifyOpts {
     async fn execute(self) -> anyhow::Result<()> {
         let ret = crate::process_text_verify(&self.input, &self.key, self.format, &self.signature)
             .await?;
@@ -101,7 +101,7 @@ impl CmdExector for TextVerifyOpts {
     }
 }
 
-impl CmdExector for TextKeyGenerateOpts {
+impl CmdExecutor for TextKeyGenerateOpts {
     async fn execute(self) -> anyhow::Result<()> {
         let key = crate::process_text_key_generate(self.format)?;
         match self.format {

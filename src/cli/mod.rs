@@ -18,7 +18,7 @@ pub struct Opts {
 }
 
 #[derive(Debug, Parser)]
-#[enum_dispatch(CmdExector)]
+#[enum_dispatch(CmdExecutor)]
 pub enum SubCommand {
     #[command(name = "csv", about = "Show CSV, or convert CSV to other formats")]
     Csv(CsvOpts),
@@ -31,18 +31,6 @@ pub enum SubCommand {
     #[command(subcommand, name = "http", about = "HTTP server")]
     Http(HttpSubCommand),
 }
-
-/* impl super::CmdExector for SubCommand {
-    async fn execute(self) -> anyhow::Result<()> {
-        match self {
-            SubCommand::Csv(opts) => opts.execute().await,
-            SubCommand::GenPass(opts) => opts.execute().await,
-            SubCommand::Base64(opts) => opts.execute().await,
-            SubCommand::Text(opts) => opts.execute().await,
-            SubCommand::Http(opts) => opts.execute().await,
-        }
-    }
-} */
 
 fn verify_file(filename: &str) -> anyhow::Result<String, &'static str> {
     // if input is "-" or file exists

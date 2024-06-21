@@ -1,7 +1,7 @@
 use clap::Parser;
 use std::{fmt, str::FromStr};
 
-use crate::CmdExector;
+use crate::CmdExecutor;
 
 use super::verify_file;
 
@@ -60,7 +60,7 @@ impl fmt::Display for OutputFormat {
     }
 }
 
-impl CmdExector for CsvOpts {
+impl CmdExecutor for CsvOpts {
     async fn execute(self) -> anyhow::Result<()> {
         let output = if let Some(output) = self.output {
             output
