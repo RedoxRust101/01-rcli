@@ -15,6 +15,10 @@ pub enum TextSubCommand {
     Verify(TextVerifyOpts),
     #[command(about = "Generate a private/public key pair")]
     Generate(TextKeyGenerateOpts),
+    #[command(about = "Encrypt a message with a shared key")]
+    Encrypt(TextEncryptOpts),
+    #[command(about = "Decrypt a message with a shared key")]
+    Decrypt(TextDecryptOpts),
 }
 
 #[derive(Debug, Parser)]
@@ -35,7 +39,7 @@ pub struct TextVerifyOpts {
     pub key: String,
     #[arg(short, long, value_parser = parse_format, default_value = "blake3")]
     pub format: TextSignFormat,
-    #[arg(short, long)]
+    #[arg(long)]
     pub signature: String,
 }
 
@@ -51,6 +55,23 @@ pub struct TextKeyGenerateOpts {
 pub enum TextSignFormat {
     Blake3,
     Ed25519,
+    Chacha20,
+}
+
+#[derive(Debug, Parser)]
+pub struct TextEncryptOpts {
+    #[arg(short, long, value_parser = verify_file, default_value = "-")]
+    pub input: String,
+    #[arg(short, long, value_parser = verify_file)]
+    pub key: String,
+}
+
+#[derive(Debug, Parser)]
+pub struct TextDecryptOpts {
+    #[arg(short, long, value_parser = verify_file, default_value = "-")]
+    pub input: String,
+    #[arg(short, long, value_parser = verify_file)]
+    pub key: String,
 }
 
 fn parse_format(format: &str) -> Result<TextSignFormat, anyhow::Error> {
@@ -64,6 +85,7 @@ impl FromStr for TextSignFormat {
         match s {
             "blake3" => Ok(Self::Blake3),
             "ed25519" => Ok(Self::Ed25519),
+            "chacha20" => Ok(Self::Chacha20),
             _ => Err(anyhow::anyhow!("Invalid format: {}", s)),
         }
     }
@@ -74,6 +96,7 @@ impl From<TextSignFormat> for &'static str {
         match format {
             TextSignFormat::Blake3 => "blake3",
             TextSignFormat::Ed25519 => "ed25519",
+            TextSignFormat::Chacha20 => "chacha20",
         }
     }
 }
@@ -114,7 +137,27 @@ impl CmdExecutor for TextKeyGenerateOpts {
                 fs::write(name.join("ed25519.sk"), &key[0])?;
                 fs::write(name.join("ed25519.pk"), &key[1])?;
             }
+            crate::TextSignFormat::Chacha20 => {
+                let name = &self.output;
+                fs::write(name.join("chacha20.key"), &key[0])?;
+            }
         }
+        Ok(())
+    }
+}
+
+impl CmdExecutor for TextEncryptOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let ciphertext = crate::process_text_encrypt(&self.input, &self.key).await?;
+        println!("\nciphertext: {}", ciphertext);
+        Ok(())
+    }
+}
+
+impl CmdExecutor for TextDecryptOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let plaintext = crate::process_text_decrypt(&self.input, &self.key).await?;
+        println!("\nplaintext: {}", plaintext);
         Ok(())
     }
 }

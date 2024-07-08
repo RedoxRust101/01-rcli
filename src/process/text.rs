@@ -1,9 +1,14 @@
 use crate::{get_reader, process_genpass, TextSignFormat};
 use anyhow::{Ok, Result};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use chacha20poly1305::{
+    aead::{Aead, AeadCore, KeyInit},
+    ChaCha20Poly1305, Nonce,
+};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use rand::rngs::OsRng;
 use std::{fs, io::Read, path::Path, vec};
+
 pub trait TextSign {
     // &[u8] implements Read, so we can test with &[u8] instead of file
     // Sign the data from the reader and return the signature
@@ -26,6 +31,14 @@ pub trait KeyGenerator {
         Self: Sized;
 }
 
+pub trait TextEncrypt {
+    fn encrypt(&self, reader: &mut dyn Read) -> Result<Vec<u8>>;
+}
+
+pub trait TextDecrypt {
+    fn decrypt(&self, reader: &mut dyn Read) -> Result<Vec<u8>>;
+}
+
 pub struct Blake3 {
     key: [u8; 32],
 }
@@ -38,6 +51,10 @@ pub struct Ed25519Verifier {
     key: VerifyingKey,
 }
 
+struct SecureChaCha20 {
+    chacha20: ChaCha20Poly1305,
+}
+
 pub async fn process_text_sign(
     input: &str,
     private_key: &str,
@@ -47,13 +64,14 @@ pub async fn process_text_sign(
 
     let signed = match format {
         TextSignFormat::Blake3 => {
-            let signer = Blake3::load(private_key)?;
+            let signer: Blake3 = Blake3::load(private_key)?;
             signer.sign(&mut reader)?
         }
         TextSignFormat::Ed25519 => {
             let signer = Ed25519Signer::load(private_key)?;
             signer.sign(&mut reader)?
         }
+        _ => unimplemented!(),
     };
     let signed = URL_SAFE_NO_PAD.encode(signed);
     Ok(signed)
@@ -77,6 +95,7 @@ pub async fn process_text_verify(
             let verifier = Ed25519Verifier::load(public_key)?;
             verifier.verify(&mut reader, &signature)?
         }
+        _ => unimplemented!(),
     };
     Ok(verified)
 }
@@ -85,7 +104,26 @@ pub fn process_text_key_generate(format: TextSignFormat) -> Result<Vec<Vec<u8>>>
     match format {
         TextSignFormat::Blake3 => Blake3::generate(),
         TextSignFormat::Ed25519 => Ed25519Signer::generate(),
+        TextSignFormat::Chacha20 => SecureChaCha20::generate(),
     }
+}
+
+pub async fn process_text_encrypt(input: &str, key: &str) -> Result<String> {
+    let mut reader: Box<dyn Read> = get_reader(input)?;
+    let cipher: SecureChaCha20 = SecureChaCha20::load(key)?;
+    let ciphertext = cipher.encrypt(&mut reader)?;
+
+    let ciphertext = String::from_utf8(ciphertext)?;
+    Ok(ciphertext)
+}
+
+pub async fn process_text_decrypt(input: &str, key: &str) -> Result<String> {
+    let mut reader: Box<dyn Read> = get_reader(input)?;
+    let cipher: SecureChaCha20 = SecureChaCha20::load(key)?;
+    let plaintext: Vec<u8> = cipher.decrypt(&mut reader)?;
+
+    let plaintext = String::from_utf8(plaintext)?;
+    Ok(plaintext)
 }
 
 impl TextSign for Blake3 {
@@ -141,6 +179,13 @@ impl KeyLoader for Ed25519Signer {
     }
 }
 
+impl KeyLoader for SecureChaCha20 {
+    fn load(path: impl AsRef<Path>) -> Result<Self> {
+        let key = fs::read(path)?;
+        Self::try_new(&key[..32].try_into()?)
+    }
+}
+
 impl KeyLoader for Ed25519Verifier {
     fn load(path: impl AsRef<Path>) -> Result<Self> {
         let key = fs::read(path)?;
@@ -162,6 +207,46 @@ impl KeyGenerator for Ed25519Signer {
         let pk = sk.verifying_key().to_bytes().to_vec();
         let sk = sk.to_bytes().to_vec();
         Ok(vec![sk, pk])
+    }
+}
+
+impl KeyGenerator for SecureChaCha20 {
+    fn generate() -> Result<Vec<Vec<u8>>> {
+        let key = ChaCha20Poly1305::generate_key(&mut OsRng).to_vec();
+        Ok(vec![key])
+    }
+}
+
+impl TextEncrypt for SecureChaCha20 {
+    fn encrypt(&self, reader: &mut dyn Read) -> Result<Vec<u8>> {
+        let mut buf = Vec::new();
+        reader.read_to_end(&mut buf)?;
+        let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
+        let ciphertext = &self.chacha20.encrypt(&nonce, buf.as_ref())?;
+
+        let mut nonce_and_ciphertext = Vec::new();
+        nonce_and_ciphertext.extend_from_slice(&nonce);
+        nonce_and_ciphertext.extend(ciphertext);
+
+        let nonce_and_ciphertext = URL_SAFE_NO_PAD
+            .encode(nonce_and_ciphertext)
+            .as_bytes()
+            .to_vec();
+        Ok(nonce_and_ciphertext)
+    }
+}
+
+impl TextDecrypt for SecureChaCha20 {
+    fn decrypt(&self, reader: &mut dyn Read) -> Result<Vec<u8>> {
+        let mut buf = Vec::new();
+        reader.read_to_end(&mut buf)?;
+
+        let nonce_and_ciphertext = URL_SAFE_NO_PAD.decode(buf)?;
+        let nonce = Nonce::from_slice(&nonce_and_ciphertext[..12]);
+        let ciphertext = &nonce_and_ciphertext[12..];
+
+        let plaintext = &self.chacha20.decrypt(nonce, ciphertext.as_ref())?;
+        Ok(plaintext.to_vec())
     }
 }
 
@@ -202,6 +287,18 @@ impl Ed25519Verifier {
     }
 }
 
+impl SecureChaCha20 {
+    pub fn new(key: ChaCha20Poly1305) -> Self {
+        Self { chacha20: key }
+    }
+
+    pub fn try_new(key: &[u8; 32]) -> Result<Self> {
+        let key = ChaCha20Poly1305::new_from_slice(key)?;
+        let cipher = SecureChaCha20::new(key);
+        Ok(cipher)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -212,6 +309,16 @@ mod tests {
         let data = b"hello world";
         let signature = balke3.sign(&mut &data[..]).unwrap();
         assert!(balke3.verify(&mut &data[..], &signature).unwrap());
+        Ok(())
+    }
+
+    #[test]
+    fn test_chacha20_encrypt_decrypt() -> Result<()> {
+        let secure_chacha20 = SecureChaCha20::load("fixtures/chacha20.key")?;
+        let mut data = "hello world".as_bytes();
+        let ciphertext = secure_chacha20.encrypt(&mut data)?;
+        let plaintext = secure_chacha20.decrypt(&mut &ciphertext[..])?;
+        assert_eq!("hello world".as_bytes(), plaintext.as_slice());
         Ok(())
     }
 }
