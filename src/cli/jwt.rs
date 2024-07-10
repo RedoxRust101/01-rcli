@@ -1,9 +1,11 @@
-use crate::{convert_duration_to_seconds, load_config_from_file, new_uuid, CmdExecutor};
+use crate::{load_config_from_file, new_uuid, CmdExecutor};
 use anyhow::{Ok, Result};
-use chrono::{Duration, Utc};
+use chrono::{TimeDelta, Utc};
 use clap::{command, Parser};
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
+
+use super::verify_exp;
 
 #[derive(Debug, Parser)]
 #[enum_dispatch(CmdExecutor)]
@@ -20,8 +22,8 @@ pub struct JwtSignOpts {
     sub: String,
     #[arg(long)]
     aud: String,
-    #[arg(long, default_value = "1h")]
-    exp: String,
+    #[arg(long, value_parser = verify_exp, default_value = "1h")]
+    exp: TimeDelta,
 }
 
 #[derive(Debug, Parser)]
@@ -79,12 +81,9 @@ impl CmdExecutor for JwtSignOpts {
     async fn execute(self) -> Result<()> {
         let config = load_config_from_file("config.json")?;
 
-        let duration_in_seconds =
-            convert_duration_to_seconds(&self.exp).expect("Failed to parse duration");
-
         let now = Utc::now();
         let now_usize = now.timestamp() as usize;
-        let expiration_time = now + Duration::seconds(duration_in_seconds as i64);
+        let expiration_time = now + self.exp;
 
         let claims = Claims {
             reg_claims: RegisteredClaims {

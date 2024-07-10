@@ -8,8 +8,10 @@ use std::path::{Path, PathBuf};
 
 pub use self::{base64::*, csv::*, genpass::*, http::*, jwt::*, text::*};
 
+use chrono::{Duration, TimeDelta};
 use clap::Parser;
 use enum_dispatch::enum_dispatch;
+use humantime::parse_duration;
 
 #[derive(Debug, Parser)]
 #[command(name = "rcli", version, author, about, long_about = None)]
@@ -50,6 +52,18 @@ fn verify_path(path: &str) -> anyhow::Result<PathBuf, &'static str> {
         Ok(path.into())
     } else {
         Err("Path dose not exists or is not a directory")
+    }
+}
+
+fn verify_exp(exp: &str) -> anyhow::Result<TimeDelta, &'static str> {
+    let duration_result = parse_duration(exp);
+
+    if duration_result.is_ok() {
+        let duration = Duration::from_std(duration_result.unwrap()).unwrap();
+        println!("Duration: {:?}", duration);
+        Ok(duration)
+    } else {
+        Err("Failed to parse duration")
     }
 }
 

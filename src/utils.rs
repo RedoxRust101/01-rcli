@@ -13,19 +13,6 @@ pub fn get_reader(input: &str) -> Result<Box<dyn Read>, anyhow::Error> {
     Ok(reader)
 }
 
-pub fn convert_duration_to_seconds(s: &str) -> Result<usize, &'static str> {
-    let (amount, unit) = s.split_at(s.len() - 1);
-    let amount: usize = amount.parse().map_err(|_| "Invalid number")?;
-
-    match unit {
-        "d" => Ok(amount * 24 * 60 * 60), // Convert days to seconds
-        "h" => Ok(amount * 60 * 60),      // Convert hours to seconds
-        "m" => Ok(amount * 60),           // Convert minutes to seconds
-        "s" => Ok(amount),                // Seconds
-        _ => Err("Unsupported time unit"),
-    }
-}
-
 pub fn new_uuid() -> String {
     Uuid::new_v4().to_string()
 }
