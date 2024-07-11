@@ -28,7 +28,6 @@ CLI：
 ```shell
 》 rcli jwt sign --sub acme --aud device1 --exp 14d
 eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJydXN0LWJvb3RjYW1wIiwic3ViIjoiYWNtZSIsImF1ZCI6ImRldmljZTEiLCJleHAiOjE3MjE3MjcxODQsIm5iZiI6MTcyMDUxNzU4NCwiaWF0IjoxNzIwNTE3NTg0LCJqdGkiOiJiMTMxZDRkZC0yMTdkLTRkZWItODQzMi00Zjk5ZTFhNjQ4NzgiLCJyb2xlIjoidGVzdCIsInVzZXJfaWQiOjQyfQ.NgsN6MyLXh_QyoL_pf-rmTqJjDUO1EDM5oDX5YPzJ-o
-cm@localhost [
 ```
 
 - rcli jwt verify -t
