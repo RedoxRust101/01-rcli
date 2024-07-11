@@ -3,7 +3,8 @@
 rcli is a rust cli tool.
 
 ## 作业一
-
+阅读 chacha20poly1305 文档，了解其使用方法并构建 CLI 对输入文本进行加密 / 解密
+要求：
 - rcli text encrypt --key "xxx"> 加密并输出 base64
 ```shell
 > rcli text encrypt --key "fixtures/chacha20.key"
@@ -19,6 +20,9 @@ plaintext: hello world!
 ```
 
 ## 作业二
+json web token(jwt) 在用户验证领域经常被用到。请构建一个 CLI 来为给定 sub/aud/exp/… 生成一个 jwt。要求生成的 jwt 可以通过 jwt.io 的验证。
+
+CLI：
 - rcli jwt sign --sub acme --aud device1 --exp 14d
 
 ```shell
@@ -37,3 +41,7 @@ Claims { reg_claims: RegisteredClaims { iss: "rust-bootcamp", sub: "acme", aud: 
 - jwt.io
 
 ![jwt.io decode](fixtures/jwt-io-decode.png)
+
+## 作业三
+给课程里的 HTTP 文件服务器添加对 directory index 的支持。
+![directory index](fixtures/directory-index.png)
